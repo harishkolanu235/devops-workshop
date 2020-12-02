@@ -9,7 +9,7 @@ using BSTBankService.Data;
 using BSTBankService.Models;
 using BSTBankService.Models.AppModels;
 using BSTBankService.Models.ViewModels;
-using BSTBankService.Services;
+//using BSTBankService.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -26,18 +26,18 @@ namespace BSTBankService.Controllers
         private readonly ApplicationDbContext _appDbContext;
         private readonly UserManager<AppUser> _userManager;
         private readonly IMapper _mapper;
-        private readonly IJwtFactory _jwtFactory;
+        //private readonly IJwtFactory _jwtFactory;
         private readonly JwtIssuerOptions _jwtOptions;
 
         public AuthController(UserManager<AppUser> userManager, IMapper mapper, 
             ApplicationDbContext appDbContext,
-            IJwtFactory jwtFactory, 
+            //IJwtFactory jwtFactory, 
             IOptions<JwtIssuerOptions> jwtOptions)
         {
             _userManager = userManager;
             _mapper = mapper;
             _appDbContext = appDbContext;
-            _jwtFactory = jwtFactory;
+            //_jwtFactory = jwtFactory;
             _jwtOptions = jwtOptions.Value;
         }
 
@@ -68,63 +68,9 @@ namespace BSTBankService.Controllers
             await _appDbContext.Customers.AddAsync(customer);
             await _appDbContext.SaveChangesAsync();
 
-            return new OkObjectResult("Account created");
+            return new OkObjectResult(new { status="Created", user= customer });
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Post([FromBody] LoginViewModel credentials)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var identity = await GetClaimsIdentity(credentials.UserName, credentials.Password);
-            if (identity == null)
-            {
-                ModelState.AddModelError("login_failure", "Invalid username or password.");
-                return BadRequest(ModelState);
-            }            
-
-            var jwt = await GenerateJwt(identity, credentials.UserName);
-            return new OkObjectResult(jwt);
-        }
-
-        private async Task<ClaimsIdentity> GetClaimsIdentity(string userName, string password)
-        {
-            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
-                return await Task.FromResult<ClaimsIdentity>(null);
-
-            // get the user to verifty
-            var user = await _userManager.FindByNameAsync(userName);
-
-            if (user == null) 
-                return await Task.FromResult<ClaimsIdentity>(null);
-
-            // check the credentials
-            if (await _userManager.CheckPasswordAsync(user, password))
-            {
-                return await Task.FromResult(_jwtFactory.GenerateClaimsIdentity(userName, user.Id));
-            }
-
-            // Credentials are invalid, or account doesn't exist
-            return await Task.FromResult<ClaimsIdentity>(null);
-        }
-
-        private async Task<string> GenerateJwt(ClaimsIdentity identity, string userName)
-        {
-            var user= _appDbContext.Users.SingleOrDefault(u => u.UserName == userName);
-            var response = new
-            {
-                id = identity.Claims.Single(c => c.Type == "id").Value,
-                auth_token = await _jwtFactory.GenerateEncodedToken(userName, identity),
-                expires_in = (int)_jwtOptions.ValidFor.TotalSeconds,
-                userName = userName,
-                firstName = user.FirstName,
-                lastName = user.LastName
-            };
-            var serializerSettings = new JsonSerializerSettings { Formatting = Formatting.Indented };
-            return JsonConvert.SerializeObject(response, serializerSettings);
-        }
+        
     }
 }

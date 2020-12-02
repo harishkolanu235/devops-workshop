@@ -16,7 +16,6 @@ namespace BSTBankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class CustomerController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
@@ -33,10 +32,6 @@ namespace BSTBankService.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomer(string identityId)
         {
-            if(HttpContext.Items["IdentityId"].ToString()!=identityId)
-            {
-                return BadRequest("Invalid identity information, Identity mismatch");
-            }
             var customer = await _dbContext.Customers
                 .Include("Identity")
                 .Include("Accounts")

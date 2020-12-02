@@ -3,7 +3,6 @@ using BSTBankService.Data;
 using BSTBankService.Models;
 using BSTBankService.Models.AppModels;
 using BSTBankService.Models.Mappings;
-using BSTBankService.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -39,8 +38,7 @@ namespace BSTBankService
         {
             services.AddControllers()
                 .AddNewtonsoftJson(options =>options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
-
-            services.AddSingleton<IJwtFactory, JwtFactory>();
+            
 
             //Configure EF Core DbContext
             services.AddDbContext<ApplicationDbContext>(
@@ -49,16 +47,7 @@ namespace BSTBankService
             //Configure Automapper
             services.AddAutoMapper(typeof(ViewModelToEntityMappingProfile));
 
-            //Configure JWT
-            var jwtAppSettingOptions = Configuration.GetSection("JwtIssuerOptions");
-            var issuer = jwtAppSettingOptions["Issuer"]; 
-            var audience = jwtAppSettingOptions["Audience"];
-            services.Configure<JwtIssuerOptions>(options =>
-            {
-                options.Issuer = jwtAppSettingOptions["Issuer"];
-                options.Audience = jwtAppSettingOptions["Audience"];
-                options.SigningCredentials = new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256);
-            });
+            //Configure JWT services here           
 
             //Configure Identity service
             var builder = services.AddIdentityCore<AppUser>(o =>
@@ -95,41 +84,8 @@ namespace BSTBankService
                 });
             });
 
-            //JWT Token validation services
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = jwtAppSettingOptions["Issuer"],
-
-                ValidateAudience = true,
-                ValidAudience = jwtAppSettingOptions["Audience"],
-
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = _signingKey,
-
-                RequireExpirationTime = true,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
-
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-            })
-                .AddJwtBearer(configureOptions =>
-            {                
-                configureOptions.ClaimsIssuer = jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)];
-                configureOptions.TokenValidationParameters = tokenValidationParameters;
-                configureOptions.SaveToken = true;
-            });
-
-            // Configure Authorization service that require api user claim
-            services.AddAuthorization(options =>
-            {
-                options.AddPolicy("ApiUser", policy => policy.RequireClaim(Constants.JwtClaimIdentifiers.Rol, Constants.JwtClaims.ApiAccess));
-            });
+            //Configure Auth services here
+            
 
         }
 
@@ -157,8 +113,7 @@ namespace BSTBankService
 
             app.UseRouting();
 
-            app.UseAuthentication();
-            app.UseAuthorization();
+            //Configure Auth middleware here
 
             app.Use(async (context,next) =>
             {

@@ -16,7 +16,6 @@ namespace BSTBankService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class AccountController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
